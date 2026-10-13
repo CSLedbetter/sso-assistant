@@ -3,16 +3,37 @@
   "buildCommand": "",
   "installCommand": "",
   "cleanUrls": true,
-  "functions": { "api/*.js": { "maxDuration": 60 } },
-  "crons": [{ "path": "/api/ping", "schedule": "17 16 * * *" }],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/ping",
+      "schedule": "17 16 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://floagxzbvqxrscnqotyn.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        }
       ]
     }
   ]

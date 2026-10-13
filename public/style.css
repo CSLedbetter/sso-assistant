@@ -135,3 +135,16 @@ details.sp input { font-family: var(--f-mono); font-size: 13px; padding: 6px 9px
 .checks span.d { color: var(--ink-2); overflow-wrap: anywhere; }
 .badge.idp, .badge.dns, .badge.claude_settings { background: var(--warn-soft); color: var(--warn-ink); border-color: transparent; }
 @media (max-width: 860px) { details.sp .grid { grid-template-columns: 1fr; } }
+
+/* Sign-in */
+#auth { gap: 10px; }
+.auth-head { display: grid; gap: 2px; }
+.auth-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button.google { background: var(--panel); color: var(--ink); border: 1px solid var(--line); display: inline-flex; gap: 8px; align-items: center; }
+button.google::before { content: "G"; font-family: var(--f-display); font-weight: 700; color: var(--accent); }
+.email-form { display: flex; gap: 8px; flex: 1 1 320px; }
+.email-form input { min-width: 0; }
+.note { background: var(--warn-soft); color: var(--warn-ink); padding: 8px 12px; border-radius: 8px; }
+.dot.wait { background: var(--warn-ink); }
+.signed-in a { font-size: 14px; }
+

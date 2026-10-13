@@ -15,6 +15,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous" defer></script>
+<script src="/config.js" defer></script>
+<script src="/auth.js" defer></script>
 <script src="/app.js" defer></script>
 </head>
 <body>
@@ -30,21 +33,7 @@
     </nav>
   </header>
 
-  <section class="panel access" id="access" aria-live="polite">
-    <form id="code-form" class="code-form">
-      <label for="code">Access code</label>
-      <input id="code" name="code" autocomplete="off" spellcheck="false" placeholder="xxxx-xxxx-xxxx-xxxx" maxlength="19" required>
-      <button type="submit">Unlock</button>
-      <p class="hint">Live calls to Claude need a code so the demo can’t be run up by strangers. Ask <a href="https://caseyledbetter.com">Casey</a> for one.</p>
-    </form>
-    <div id="signed-in" class="signed-in" hidden>
-      <span class="dot" aria-hidden="true"></span>
-      <span>Signed in as <b id="who"></b></span>
-      <span class="muted" id="left"></span>
-      <button type="button" class="link" id="sign-out">Sign out</button>
-    </div>
-    <p id="access-error" class="error" hidden></p>
-  </section>
+  <section class="panel access" id="auth" aria-live="polite"><p class="muted small">Checking sign-in…</p></section>
 
   <div class="layout">
     <section class="panel queue" aria-labelledby="queue-h">
@@ -78,7 +67,7 @@
           <button type="button" id="explain" disabled>Run checks and explain</button>
           <span class="muted small" id="count">0 / 20,000</span>
         </div>
-        <p class="muted small">Running the checks is free and needs no code. Explaining calls Claude and needs one. Secrets and token signatures are removed before anything is sent to Claude.</p>
+        <p class="muted small">Running the checks is free and needs no sign-in. Explaining calls Claude, so it needs an approved sign-in. Secrets and token signatures are removed before anything is sent to Claude.</p>
       </section>
 
       <section class="panel result" id="result" aria-live="polite" hidden></section>

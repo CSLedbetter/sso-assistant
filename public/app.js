@@ -1,51 +1,10 @@
 // Everything is rendered with textContent, so nothing pasted or returned can inject markup.
 const $ = (id) => document.getElementById(id);
-const KEY = 'sso-code';
-const state = { code: null, ticket: null };
+const state = { ticket: null };
 const DEFAULT_SP = { entity_id: 'https://sso.example-sp.com/saml/conn_01NORTHWIND', acs_url: 'https://sso.example-sp.com/saml/conn_01NORTHWIND/acs', cert_fingerprint: '', client_id: '' };
 const SP_FIELDS = { entity_id: 'sp-entity', acs_url: 'sp-acs', cert_fingerprint: 'sp-fp', client_id: 'sp-client' };
 
-const store = {
-  get() { try { return sessionStorage.getItem(KEY); } catch { return null; } },
-  set(v) { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch { /* private mode */ } },
-};
-const money = (n) => (n == null ? '' : `$${Number(n).toFixed(2)}`);
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
-
-// ---------- access ----------
-async function unlock(code, quiet = false) {
-  $('access-error').hidden = true;
-  try {
-    const res = await fetch('/api/session', { method: 'POST', headers: { 'x-access-code': code } });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || 'That code didn’t work.');
-    state.code = code;
-    store.set(code);
-    $('who').textContent = body.label;
-    $('left').textContent = `${money(body.remaining_usd)} of budget left`;
-    $('code-form').hidden = true;
-    $('signed-in').hidden = false;
-  } catch (err) {
-    store.set(null);
-    if (!quiet) { $('access-error').textContent = err.message; $('access-error').hidden = false; }
-  }
-  updateButtons();
-}
-$('code-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const code = $('code').value.trim().toLowerCase();
-  if (!/^[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}$/.test(code)) {
-    $('access-error').textContent = 'Codes look like 1a2b-3c4d-5e6f-7a8b.';
-    $('access-error').hidden = false;
-    return;
-  }
-  unlock(code);
-});
-$('sign-out').addEventListener('click', () => {
-  state.code = null; store.set(null);
-  $('signed-in').hidden = true; $('code-form').hidden = false; $('code').value = '';
-  updateButtons();
-});
 
 // ---------- tickets ----------
 function setSp(sp) { for (const [k, id] of Object.entries(SP_FIELDS)) $(id).value = sp?.[k] || ''; }
@@ -95,8 +54,9 @@ function countChars() { $('count').textContent = `${$('input').value.length.toLo
 function updateButtons() {
   const has = $('input').value.trim().length >= 10;
   $('check-only').disabled = !has;
-  $('explain').disabled = !state.code || !has;
-  $('explain').title = state.code ? '' : 'Enter an access code first';
+  const approved = Boolean(window.DemoAuth?.approved);
+  $('explain').disabled = !approved || !has;
+  $('explain').title = approved ? '' : 'Sign in and get approved to run live calls';
 }
 $('input').addEventListener('input', () => {
   if (state.ticket && $('input').value !== state.ticket.body) { state.ticket = null; $('ticket-chip').hidden = true; }
@@ -108,10 +68,10 @@ $('clear').addEventListener('click', () => {
   countChars(); $('input').focus();
 });
 
-async function post(path, withCode) {
+async function post(path, signedIn) {
   const t = state.ticket;
   const headers = { 'content-type': 'application/json' };
-  if (withCode) headers['x-access-code'] = state.code;
+  if (signedIn) headers.authorization = `Bearer ${window.DemoAuth.token()}`;
   const res = await fetch(path, {
     method: 'POST', headers,
     body: JSON.stringify({ input: $('input').value, sp: getSp(), ticket: t ? { id: t.id, subject: t.subject, plan: t.plan, idp: t.idp } : null }),
@@ -150,7 +110,7 @@ $('explain').addEventListener('click', async () => {
     const r = await post('/api/diagnose', true);
     if (!r.ok) return showError(r.body.error || `Request failed (${r.status}).`, r.body.analysis);
     render(r.body);
-    if (r.body.remaining_usd != null) $('left').textContent = `${money(r.body.remaining_usd)} of budget left`;
+    window.DemoAuth.afterCall(r.body.remaining_usd);
   } catch (err) { showError(err.message); } finally { updateButtons(); }
 });
 
@@ -221,7 +181,6 @@ function render(data) {
     $('handoff-slot').append(label, ul);
     btn.click();
   }
-  const saved = store.get();
-  if (saved) unlock(saved, true);
+  window.DemoAuth?.onChange(updateButtons);
   countChars();
 })();
