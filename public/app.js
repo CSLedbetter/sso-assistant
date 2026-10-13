@@ -59,8 +59,35 @@ function updateButtons() {
   $('explain').title = approved ? '' : 'Sign in and get approved to run live calls';
 }
 $('input').addEventListener('input', () => {
-  if (state.ticket && $('input').value !== state.ticket.body) { state.ticket = null; $('ticket-chip').hidden = true; }
+  if (state.ticket && $('input').value !== state.ticket.body) state.ticket = null;
+  if (!state.ticket) { $('ticket-chip').textContent = 'Your own input'; $('ticket-chip').hidden = !$('input').value.trim(); }
   countChars();
+});
+$('use-own').addEventListener('click', () => {
+  $('clear').click();
+  $('own').open = true;
+  $('own').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('input').focus();
+});
+// Decode a sample's base64 SAML response into readable XML so a visitor can edit it and rerun the checks.
+$('to-xml').addEventListener('click', async () => {
+  let t = state.ticket && /PHNhbWxwOl/.test(state.ticket.body) ? state.ticket : null;
+  if (!t) {
+    const all = await (await fetch('/tickets.json')).json();
+    t = all.find((x) => x.id === 'SSO-3013');
+  }
+  const blob = t.body.match(/[A-Za-z0-9+/=\n]{200,}/g).sort((a, b) => b.length - a.length)[0].replace(/\s+/g, '');
+  const xml = new TextDecoder().decode(Uint8Array.from(atob(blob), (c) => c.charCodeAt(0)))
+    .replace(/<ds:SignatureValue>[^<]+<\/ds:SignatureValue>/g, '<ds:SignatureValue>…</ds:SignatureValue>')
+    .replace(/></g, '>\n<');
+  setSp(t.sp || DEFAULT_SP);
+  state.ticket = null;
+  $('input').value = xml;
+  $('ticket-chip').textContent = `Editable copy of ${t.id}. Change a value, then Run checks.`;
+  $('ticket-chip').hidden = false;
+  countChars();
+  $('input').focus();
+  $('input').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 $('clear').addEventListener('click', () => {
   $('input').value = ''; state.ticket = null; $('ticket-chip').hidden = true; setSp(DEFAULT_SP);
@@ -162,7 +189,7 @@ function render(data) {
   f('admin').textContent = r.admin_reply;
   f('exec').textContent = r.exec_summary;
   if (r.escalate_to_engineering) { f('escalate').hidden = false; f('escalation').textContent = r.escalation_note; }
-  f('meta').textContent = `${data.model} · ${data.seconds} s · this run cost $${data.cost_usd.toFixed(4)}${data.redactions ? ` · removed ${data.redactions} secret${data.redactions > 1 ? 's' : ''}` : ''}`;
+  f('meta').textContent = `Generated live just now from ${state.ticket ? `ticket ${state.ticket.id}` : 'your input'} by ${data.model} in ${data.seconds} s · Claude request ID ${data.claude_request_id || 'not returned'} · this run cost $${data.cost_usd.toFixed(4)}${data.redactions ? ` · removed ${data.redactions} secret${data.redactions > 1 ? 's' : ''}` : ''}`;
   out.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy === 'admin' ? r.admin_reply : r.exec_summary); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; }
     setTimeout(() => { b.textContent = 'Copy'; }, 1800);

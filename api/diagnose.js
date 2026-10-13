@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   const started = Date.now();
   try {
-    const { data, usage, model: used } = await callClaude({ model, system: SYSTEM, user, schema: SCHEMA, maxTokens: MAX_TOKENS });
+    const { data, usage, model: used, requestId } = await callClaude({ model, system: SYSTEM, user, schema: SCHEMA, maxTokens: MAX_TOKENS });
     const cost = actualCost(model, usage);
     await finish(gate.request_id, true, cost, usage, used).catch((e) => console.error(e));
     const after = await userStatus(gate.user.id).catch(() => null);
@@ -49,6 +49,7 @@ export default async function handler(req, res) {
       analysis, redactions, result: data, model: used,
       cost_usd: Number(cost.toFixed(4)),
       seconds: Math.round((Date.now() - started) / 100) / 10,
+      claude_request_id: requestId,
       remaining_usd: after?.remaining_usd ?? null,
     });
   } catch (err) {

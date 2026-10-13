@@ -148,3 +148,22 @@ button.google::before { content: "G"; font-family: var(--f-display); font-weight
 .dot.wait { background: var(--warn-ink); }
 .signed-in a { font-size: 14px; }
 
+
+/* Bring your own */
+.own-btn { width: 100%; }
+details.own { border: 1px dashed var(--accent); border-radius: 10px; padding: 10px 14px; background: var(--accent-soft); }
+details.own summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+details.own[open] { display: grid; gap: 10px; }
+details.own > p { font-size: 14px; color: var(--ink-2); }
+.recipe { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.recipe-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.recipe pre { margin: 0; padding: 10px 12px; font-family: var(--f-mono); font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre; }
+.recipe > p { padding: 0 12px 10px; }
+.mono { font-family: var(--f-mono); }
+.recipe > p, .recipe > ol { padding: 8px 12px 10px; margin: 0; font-size: 14px; }
+.recipe ol { padding-left: 30px; }
+
+/* keep wide command boxes inside the panel on small screens */
+.panel > *, details.own, .recipe { min-width: 0; }
+.recipe pre { max-width: 100%; }
+details.own[open] { grid-template-columns: minmax(0, 1fr); }

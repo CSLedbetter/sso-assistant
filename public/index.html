@@ -38,7 +38,8 @@
   <div class="layout">
     <section class="panel queue" aria-labelledby="queue-h">
       <div class="sec-head"><h2 id="queue-h">SSO ticket queue</h2></div>
-      <p class="muted small">Fictional tickets with real, generated SAML and tokens. Pick one, or paste your own on the right.</p>
+      <button type="button" class="own-btn" id="use-own">Try your own SSO data</button>
+      <p class="muted small">Or pick one of these fictional tickets. Their SAML responses and tokens are real, freshly generated ones.</p>
       <div id="handoff-slot"></div>
       <ul id="tickets" class="tickets"></ul>
     </section>
@@ -68,6 +69,25 @@
           <span class="muted small" id="count">0 / 20,000</span>
         </div>
         <p class="muted small">Running the checks is free and needs no sign-in. Explaining calls Claude, so it needs an approved sign-in. Secrets and token signatures are removed before anything is sent to Claude.</p>
+        <details class="own" id="own">
+          <summary>Bring your own SSO data, or break a sample yourself</summary>
+          <p>Nothing here is canned. The checks run on whatever you paste, and every explanation shows Claude’s request ID so you can see it was generated just now.</p>
+          <div class="recipe">
+            <div class="recipe-head"><b>Break a sample and watch the checks change</b></div>
+            <p>Load a sample as plain XML, change something (the <span class="mono">Audience</span>, a <span class="mono">NotBefore</span> time, or the <span class="mono">NameID</span>), then click Run checks.</p>
+            <p><button type="button" id="to-xml">Load a sample as editable XML</button></p>
+          </div>
+          <div class="recipe">
+            <div class="recipe-head"><b>Capture a real SAML response from your own sign-in</b></div>
+            <ol class="small">
+              <li>Open your browser’s developer tools, go to the <b>Network</b> tab, and turn on <b>Preserve log</b>.</li>
+              <li>Sign in to any app that uses SAML SSO.</li>
+              <li>Find the POST request to the app’s ACS URL, open <b>Payload</b>, and copy the <span class="mono">SAMLResponse</span> value. Browser add-ons like SAML-tracer do this too.</li>
+              <li>Paste it above, fill in the app’s entity ID and ACS URL under Service provider settings, and run the checks.</li>
+            </ol>
+          </div>
+          <p class="muted small">You can also paste an OIDC ID token, an IdP error like an <span class="mono">AADSTS</span> code, a SCIM error, or <span class="mono">dig TXT</span> output. A real SAML response includes your name and email, so use a test account or one you don’t mind sharing with Claude.</p>
+        </details>
       </section>
 
       <section class="panel result" id="result" aria-live="polite" hidden></section>
