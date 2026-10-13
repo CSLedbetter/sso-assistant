@@ -50,7 +50,7 @@
     if (s === 'approved') line.append(el('span', { className: 'muted', textContent: `$${Number(state.status.remaining_usd).toFixed(2)} of budget left` }));
     if (state.status?.is_admin && cfg.adminUrl) line.append(el('a', { href: cfg.adminUrl, textContent: 'Manage access' }));
     const out = el('button', { type: 'button', className: 'link', textContent: 'Sign out' });
-    out.addEventListener('click', async () => { await client.auth.signOut(); refresh(); });
+    out.addEventListener('click', async () => { window.RunCache?.clear(); await client.auth.signOut(); refresh(); });
     line.append(out);
     const parts = [line];
     const msg = {

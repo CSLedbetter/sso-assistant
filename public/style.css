@@ -168,3 +168,7 @@ details.own > p { font-size: 14px; color: var(--ink-2); }
 .recipe pre { max-width: 100%; }
 details.own[open] { grid-template-columns: minmax(0, 1fr); }
 .email-form button { white-space: nowrap; }
+
+/* Saved diagnosis notice */
+.saved-note { background: var(--good-soft); color: var(--good-ink); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.saved-note button.link { color: inherit; text-decoration: underline; font-weight: 600; padding: 0; }

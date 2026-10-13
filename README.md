@@ -28,6 +28,10 @@ Claude gets the decoded XML with signature values and certificate bodies strippe
 
 Running the checks is free and needs no sign-in. Explaining calls Claude, so visitors sign in with Google through Supabase Auth and wait for the owner to approve them. This tool shares one $15 budget with API Error Explainer, enforced in Postgres before Claude is called: $5 per approved person by default and 30 requests per person per hour, with every request reserving its worst-case cost before settling to the real one. The approval page, schema and SQL are in the [API Error Explainer repo](https://github.com/CSLedbetter/api-error-explainer#sign-in-approval-and-the-15-cap).
 
+## Saved diagnoses
+
+Each paid diagnosis is saved in the visitor's browser tab, keyed by a SHA-256 hash of the exact input (plus the ticket, and the SP settings in SSO Assistant). Clicking the paid button again on the same input shows the saved result with its original time and Claude request ID, and makes no new call. A **Run a fresh diagnosis** link forces a new one. Saved results live in `sessionStorage`, so they survive a reload, clear when the tab closes or the visitor signs out, and never include the pasted text itself.
+
 ## Run it locally
 
 ```

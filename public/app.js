@@ -119,6 +119,9 @@ function showError(msg, analysis) {
   if (analysis) out.append(checksBlock(analysis));
 }
 
+// The same input, SP settings and ticket always map to the same saved diagnosis.
+const runKey = () => window.RunCache.key({ tool: 'sso', input: $('input').value, sp: getSp(), ticket: state.ticket?.id || null });
+
 $('check-only').addEventListener('click', async () => {
   showLoading('Decoding and checking…');
   try {
@@ -127,19 +130,37 @@ $('check-only').addEventListener('click', async () => {
     const out = $('result');
     out.className = 'panel result';
     out.replaceChildren(checksBlock(r.body.analysis));
+    const k = await runKey();
+    const saved = window.RunCache.get(k);
+    if (saved) {
+      const note = el('p', { className: 'saved-note' });
+      const show = el('button', { type: 'button', className: 'link', textContent: 'Show saved diagnosis' });
+      show.addEventListener('click', () => render(saved.data, saved));
+      note.append(el('span', { textContent: `You already have a Claude diagnosis for this exact input from ${window.RunCache.time(saved.savedAt)}. ` }), show);
+      out.prepend(note);
+    }
   } catch (err) { showError(err.message); }
 });
 
-$('explain').addEventListener('click', async () => {
+let running = false;
+async function explain(fresh) {
+  if (running) return;
+  const k = await runKey();
+  const saved = !fresh && window.RunCache.get(k);
+  if (saved) return render(saved.data, saved);
+  running = true;
   showLoading('Running the checks, then asking Claude to explain…');
   $('explain').disabled = true;
   try {
     const r = await post('/api/diagnose', true);
     if (!r.ok) return showError(r.body.error || `Request failed (${r.status}).`, r.body.analysis);
+    r.body.source = state.ticket ? `ticket ${state.ticket.id}` : 'your input';
+    window.RunCache.put(k, r.body);
     render(r.body);
     window.DemoAuth.afterCall(r.body.remaining_usd);
-  } catch (err) { showError(err.message); } finally { updateButtons(); }
-});
+  } catch (err) { showError(err.message); } finally { running = false; updateButtons(); }
+}
+$('explain').addEventListener('click', () => explain(false));
 
 const KIND = { saml: 'SAML response', oidc_token: 'OIDC ID token', oidc_error: 'OIDC error from the IdP', scim_error: 'SCIM error', dns: 'DNS lookup', text: 'Ticket text only' };
 
@@ -163,11 +184,22 @@ function checksBlock(a) {
   return frag;
 }
 
-function render(data) {
+function savedBanner(saved) {
+  const box = el('div', { className: 'saved-note' });
+  const again = el('button', { type: 'button', className: 'link', textContent: 'Run a fresh diagnosis' });
+  again.disabled = !window.DemoAuth?.approved;
+  again.addEventListener('click', () => explain(true));
+  box.append(el('span', { textContent: `Saved diagnosis from ${window.RunCache.time(saved.savedAt)} for this exact input. No new Claude call, no cost. ` }), again);
+  return box;
+}
+
+function render(data, saved) {
   const r = data.result;
   const out = $('result');
+  out.hidden = false;
   out.className = 'panel result';
   out.replaceChildren($('tpl-result').content.cloneNode(true));
+  if (saved) out.prepend(savedBanner(saved));
   const f = (n) => out.querySelector(`[data-f="${n}"]`);
   const list = (node, items) => node.replaceChildren(...items.map((x) => el('li', { textContent: x })));
   f('headline').textContent = r.headline;
@@ -189,7 +221,8 @@ function render(data) {
   f('admin').textContent = r.admin_reply;
   f('exec').textContent = r.exec_summary;
   if (r.escalate_to_engineering) { f('escalate').hidden = false; f('escalation').textContent = r.escalation_note; }
-  f('meta').textContent = `Generated live just now from ${state.ticket ? `ticket ${state.ticket.id}` : 'your input'} by ${data.model} in ${data.seconds} s · Claude request ID ${data.claude_request_id || 'not returned'} · this run cost $${data.cost_usd.toFixed(4)}${data.redactions ? ` · removed ${data.redactions} secret${data.redactions > 1 ? 's' : ''}` : ''}`;
+  const when = saved ? `Generated live at ${window.RunCache.time(saved.savedAt)}` : 'Generated live just now';
+  f('meta').textContent = `${when} from ${data.source || 'your input'} by ${data.model} in ${data.seconds} s · Claude request ID ${data.claude_request_id || 'not returned'} · ${saved ? 'that run' : 'this run'} cost $${data.cost_usd.toFixed(4)}${data.redactions ? ` · removed ${data.redactions} secret${data.redactions > 1 ? 's' : ''}` : ''}`;
   out.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy === 'admin' ? r.admin_reply : r.exec_summary); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; }
     setTimeout(() => { b.textContent = 'Copy'; }, 1800);
