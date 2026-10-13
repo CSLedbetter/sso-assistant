@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSO Assistant</title>
+<meta name="description" content="Paste a SAML response, OIDC token, SCIM error, or DNS check. Code runs the hard checks, then Claude explains the failure and drafts replies for the IT admin and an executive.">
+<link rel="canonical" href="https://sso-assistant.caseyledbetter.com/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sso-assistant.caseyledbetter.com/">
+<meta property="og:title" content="SSO Assistant">
+<meta property="og:description" content="Decode a SAML response or OIDC token, run the hard checks, and get the fix plus two ready replies.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Support tooling demo</p>
+    <h1>SSO Assistant</h1>
+    <p class="lede">Paste a SAML response, an OIDC token or error, a SCIM error, or DNS output. Code decodes it and checks the audience, ACS URL, certificate, clock, NameID, and signatures. Claude then explains the failure in plain words and drafts replies for the customer’s IT admin and an executive.</p>
+    <nav class="family" aria-label="Related tools">
+      <a href="https://doc-gap-finder.caseyledbetter.com">Doc Gap Finder</a>
+      <a href="https://api-error-explainer.caseyledbetter.com">API Error Explainer</a>
+      <span aria-current="page">SSO Assistant</span>
+    </nav>
+  </header>
+
+  <section class="panel access" id="access" aria-live="polite">
+    <form id="code-form" class="code-form">
+      <label for="code">Access code</label>
+      <input id="code" name="code" autocomplete="off" spellcheck="false" placeholder="xxxx-xxxx-xxxx-xxxx" maxlength="19" required>
+      <button type="submit">Unlock</button>
+      <p class="hint">Live calls to Claude need a code so the demo can’t be run up by strangers. Ask <a href="https://caseyledbetter.com">Casey</a> for one.</p>
+    </form>
+    <div id="signed-in" class="signed-in" hidden>
+      <span class="dot" aria-hidden="true"></span>
+      <span>Signed in as <b id="who"></b></span>
+      <span class="muted" id="left"></span>
+      <button type="button" class="link" id="sign-out">Sign out</button>
+    </div>
+    <p id="access-error" class="error" hidden></p>
+  </section>
+
+  <div class="layout">
+    <section class="panel queue" aria-labelledby="queue-h">
+      <div class="sec-head"><h2 id="queue-h">SSO ticket queue</h2></div>
+      <p class="muted small">Fictional tickets with real, generated SAML and tokens. Pick one, or paste your own on the right.</p>
+      <div id="handoff-slot"></div>
+      <ul id="tickets" class="tickets"></ul>
+    </section>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="input-h">
+        <div class="sec-head">
+          <h2 id="input-h">What the customer sent</h2>
+          <button type="button" class="link" id="clear">Clear</button>
+        </div>
+        <div id="ticket-chip" class="chip" hidden></div>
+        <label for="input" class="visually-hidden">SAML response, token, error, or ticket text</label>
+        <textarea id="input" rows="11" maxlength="20000" spellcheck="false" placeholder="Paste a base64 SAMLResponse, SAML XML, an ID token, an IdP error, SCIM error JSON, or dig output."></textarea>
+        <details class="sp">
+          <summary>Service provider settings to check against</summary>
+          <p class="muted small">The values from the SSO setup screen. Tickets fill these in; edit them to try your own.</p>
+          <div class="grid">
+            <label for="sp-entity">SP entity ID</label><input id="sp-entity" spellcheck="false">
+            <label for="sp-acs">ACS URL</label><input id="sp-acs" spellcheck="false">
+            <label for="sp-fp">Cert fingerprint (SHA-256)</label><input id="sp-fp" spellcheck="false" placeholder="optional">
+            <label for="sp-client">OIDC client ID</label><input id="sp-client" spellcheck="false" placeholder="optional">
+          </div>
+        </details>
+        <div class="actions">
+          <button type="button" id="check-only">Run checks</button>
+          <button type="button" id="explain" disabled>Run checks and explain</button>
+          <span class="muted small" id="count">0 / 20,000</span>
+        </div>
+        <p class="muted small">Running the checks is free and needs no code. Explaining calls Claude and needs one. Secrets and token signatures are removed before anything is sent to Claude.</p>
+      </section>
+
+      <section class="panel result" id="result" aria-live="polite" hidden></section>
+    </div>
+  </div>
+
+  <footer class="muted small">
+    Built by <a href="https://caseyledbetter.com">Casey Ledbetter</a> with Claude Code. Signatures are checked for presence and the certificate is inspected; signatures aren’t verified cryptographically in this demo.
+    <a href="https://github.com/CSLedbetter/sso-assistant">Source</a>
+  </footer>
+</div>
+<template id="tpl-checks">
+  <div class="facts-box">
+    <h3 data-f="kind"></h3>
+    <p class="muted small">Decoded and checked by code, before Claude reads anything.</p>
+    <ul class="checks" data-f="checks"></ul>
+    <details><summary class="small">Decoded fields</summary><dl data-f="facts"></dl></details>
+  </div>
+</template>
+<template id="tpl-result">
+  <div class="res-head">
+    <p class="eyebrow">Diagnosis</p>
+    <h2 data-f="headline"></h2>
+    <div class="badges" data-f="badges"></div>
+  </div>
+  <div data-f="checks-slot"></div>
+  <div class="two">
+    <div><h3>Likely cause</h3><p data-f="cause"></p></div>
+    <div><h3>Who’s affected</h3><p data-f="affected"></p></div>
+  </div>
+  <div><h3>Evidence</h3><ul data-f="evidence"></ul></div>
+  <div><h3>Fix, in order</h3><ol data-f="steps"></ol></div>
+  <div data-f="questions-wrap"><h3>Still need from the customer</h3><ul data-f="questions"></ul></div>
+  <div><h3>Docs to send</h3><ul class="docs" data-f="docs"></ul></div>
+  <div class="replies">
+    <article class="reply">
+      <header><h3>Reply to the IT admin</h3><button type="button" class="link copy" data-copy="admin">Copy</button></header>
+      <pre data-f="admin"></pre>
+    </article>
+    <article class="reply">
+      <header><h3>Summary for an executive</h3><button type="button" class="link copy" data-copy="exec">Copy</button></header>
+      <pre data-f="exec"></pre>
+    </article>
+  </div>
+  <div class="escalate" data-f="escalate" hidden><h3>Escalate to engineering</h3><p data-f="escalation"></p></div>
+  <p class="meta muted small" data-f="meta"></p>
+</template>
+</body>
+</html>

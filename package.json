@@ -1,0 +1,8 @@
+{
+  "name": "sso-assistant",
+  "private": true,
+  "type": "module",
+  "description": "Decode a SAML response, OIDC token, SCIM error or DNS check and get a diagnosis plus two ready replies.",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/*.test.js", "samples": "python3 data/make_samples.py" }
+}
