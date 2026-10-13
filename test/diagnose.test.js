@@ -23,7 +23,7 @@ beforeEach(() => {
     const json = (d, s = 200) => new Response(d === null ? '' : JSON.stringify(d), { status: s });
     if (url.endsWith('/auth/v1/user')) return opts.headers.Authorization === 'Bearer good-token-1234567890' ? json({ id: USER, email: 'tester@example.com' }) : json({}, 401);
     if (url.endsWith('/rpc/demo_begin_user')) return json(gateReply);
-    if (url.endsWith('/rpc/demo_finish')) return json(null);
+    if (url.endsWith('/rpc/demo_finish_call')) return json(null);
     if (url.endsWith('/rpc/demo_user_status')) return json({ status: 'approved', remaining_usd: 4.9 });
     if (url.includes('api.anthropic.com')) return json({ stop_reason: 'end_turn', model: 'claude-sonnet-5-5', usage: { input_tokens: 4000, output_tokens: 600 }, content: [{ type: 'text', text: JSON.stringify(RESULT) }] });
     throw new Error(url);
@@ -45,7 +45,7 @@ test('sends Claude the decoded XML without signatures or certificate bodies, and
   assert.ok(sent.length < 12000, `sent ${sent.length} chars`);
   assert.equal(calls.find((c) => c.url.endsWith('/rpc/demo_begin_user')).body.p_tool, 'sso-assistant');
   assert.equal(calls.find((c) => c.url.endsWith('/rpc/demo_begin_user')).body.p_ticket_id, 'SSO-3001');
-  assert.equal(calls.find((c) => c.url.endsWith('/rpc/demo_finish')).body.p_cost_usd, 0.014);
+  assert.equal(calls.find((c) => c.url.endsWith('/rpc/demo_finish_call')).body.p_cost_usd, 0.014);
 });
 
 test('still returns the free checks when the budget is used up', async () => {

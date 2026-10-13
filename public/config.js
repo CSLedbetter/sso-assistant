@@ -3,6 +3,6 @@
 window.DEMO_CONFIG = {
   supabaseUrl: 'https://floagxzbvqxrscnqotyn.supabase.co',
   supabaseKey: 'sb_publishable_lr9W5YIsQqrGJzpuRUX9bA_EuRbEcci',
-  emailSignIn: false, // turn on once a custom SMTP sender is set up in Supabase
+  emailSignIn: true, // needs the custom SMTP sender set up in Supabase
   adminUrl: 'https://api-error-explainer.caseyledbetter.com/admin',
 };
