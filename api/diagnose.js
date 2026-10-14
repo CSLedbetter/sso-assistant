@@ -1,6 +1,7 @@
 import { getUser, begin, finish, userStatus, maxCost, actualCost, REASONS, PRICES } from '../lib/gate.js';
 import { analyze, detect, compactXml } from '../lib/analyze.js';
 import { DOCS } from '../lib/docs.js';
+import { POLICIES, condenseCredential } from '../lib/webauthn.js';
 import { callClaude, DEFAULT_MODEL } from '../lib/claude.js';
 import { SYSTEM, SCHEMA, userMessage } from '../lib/prompt.js';
 
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   const sp = cleanSp(body.sp);
   const { text: input, redactions } = redact(raw);
   const analysis = analyze(input, sp);
-  const forClaude = condense(input);
+  const forClaude = condense(input, analysis);
   const model = PRICES[process.env.CLAUDE_MODEL] ? process.env.CLAUDE_MODEL : DEFAULT_MODEL;
   const user = userMessage({ ticket, analysis, input: forClaude });
   const reserve = maxCost(model, SYSTEM.length + JSON.stringify(SCHEMA).length + user.length, MAX_TOKENS);
@@ -61,8 +62,9 @@ export default async function handler(req, res) {
 }
 
 // Send Claude the decoded XML without signatures and certificate bodies, and never a token's signature.
-function condense(input) {
+function condense(input, analysis) {
   const d = detect(input);
+  if (d.kind === 'webauthn') return condenseCredential(input, analysis);
   if (d.kind === 'saml') {
     const blob = input.match(/[A-Za-z0-9+/=\r\n]{200,}/g)?.sort((a, b) => b.length - a.length)[0];
     const note = d.encoding === 'xml' ? input.slice(0, input.search(/<(?:[\w-]+:)?Response\b/i)) : (blob ? input.replace(blob, '\n[SAML response, decoded below]\n') : '');
@@ -89,9 +91,10 @@ function cleanTicket(t) {
 function cleanSp(sp) {
   const out = {};
   if (!sp || typeof sp !== 'object') return out;
-  for (const k of ['entity_id', 'acs_url', 'cert_fingerprint', 'client_id']) {
+  for (const k of ['entity_id', 'acs_url', 'cert_fingerprint', 'client_id', 'rp_id', 'origin', 'challenge']) {
     if (typeof sp[k] === 'string' && sp[k].trim()) out[k] = sp[k].trim().slice(0, 300);
   }
   out.nameid = sp.nameid === 'any' ? 'any' : 'email';
+  if (POLICIES.includes(sp.passkey_policy)) out.passkey_policy = sp.passkey_policy;
   return out;
 }

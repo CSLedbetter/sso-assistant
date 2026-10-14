@@ -195,5 +195,114 @@
       "acs_url": "https://sso.example-sp.com/saml/conn_01NORTHWIND/acs",
       "nameid": "email"
     }
+  },
+  {
+    "id": "SSO-3014",
+    "plan": "Enterprise",
+    "idp": "Okta",
+    "from_name": "Lena Fischer",
+    "company": "Northwind Analytics",
+    "subject": "Passkey sign-in broke after our IdP domain change",
+    "received_at": "2026-10-13T14:20Z",
+    "body": "We moved our IdP to the parent domain northwind.example last night. Since then every passkey sign-in is rejected before anyone reaches Claude. Password plus push still works. Here's a failed sign-in from our logs:\n\n{\n  \"id\": \"MrOJpMmh43xukf64CfCatWW3TcazIG-8sqEkOmAhuQI\",\n  \"rawId\": \"MrOJpMmh43xukf64CfCatWW3TcazIG-8sqEkOmAhuQI\",\n  \"type\": \"public-key\",\n  \"authenticatorAttachment\": \"platform\",\n  \"response\": {\n    \"clientDataJSON\": \"eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRi1IeUVSSGI2Z29vS2J2VTFxRXZsWmJOVHVTNnRBSnZGd1M5LVpuYW5qQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9naW4ubm9ydGh3aW5kLmV4YW1wbGUiLCJjcm9zc09yaWdpbiI6ZmFsc2V9\",\n    \"authenticatorData\": \"BWjanBjwHlwj3D9AT3xLAnX9Bsc7abzfu-UBy3HhCZodAAAAAA\",\n    \"signature\": \"MEUCIF9e12cFskuBnCQ_8FuJez7N0Ov2735FLoKfnJE-rCYwAiEAw5JQfkq8Ebw23fKmi3HcUww37WL0My7UflVAdaRm7i4\",\n    \"userHandle\": \"KmiW1WKC-UjDcQMPDdAjZw\"\n  },\n  \"clientExtensionResults\": {}\n}",
+    "sp": {
+      "rp_id": "northwind.example",
+      "origin": "https://login.northwind.example",
+      "challenge": "F-HyERHb6gooKbvU1qEvlZbNTuS6tAJvFwS9-ZnanjA",
+      "passkey_policy": "uv"
+    },
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3015",
+    "plan": "Enterprise",
+    "idp": "Okta",
+    "from_name": "Hannah Okafor",
+    "company": "Brightpath Health",
+    "subject": "Passkeys fail only on our new sign-in page",
+    "received_at": "2026-10-13T16:05Z",
+    "body": "We launched a branded sign-in page at signin.brightpath-health.example. Passkeys work on the old page but fail on the new one. Same users, same passkeys. Response from the new page:\n\n{\n  \"id\": \"aXS5iR5v92WT2g3jfUQMhOz5ZyYACB13nF-k2_g5ZsY\",\n  \"rawId\": \"aXS5iR5v92WT2g3jfUQMhOz5ZyYACB13nF-k2_g5ZsY\",\n  \"type\": \"public-key\",\n  \"authenticatorAttachment\": \"platform\",\n  \"response\": {\n    \"clientDataJSON\": \"eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRi1IeUVSSGI2Z29vS2J2VTFxRXZsWmJOVHVTNnRBSnZGd1M5LVpuYW5qQSIsIm9yaWdpbiI6Imh0dHBzOi8vc2lnbmluLmJyaWdodHBhdGgtaGVhbHRoLmV4YW1wbGUiLCJjcm9zc09yaWdpbiI6ZmFsc2V9\",\n    \"authenticatorData\": \"yEkc878vfHm90F8RooFz8G2ew0ueoNYqoyjIvhxeB08dAAAAAA\",\n    \"signature\": \"MEUCIH1_jgMOlB2FoLf4OsVxfbrh4sN63xkE_DdFvMgGaAtmAiEAgZt0YSa0mQYEGvDzZhpwbz3gJGU6wjBLhKjg7kq9X5M\",\n    \"userHandle\": \"0FLfOOqW8zbc3grA9IwFPA\"\n  },\n  \"clientExtensionResults\": {}\n}",
+    "sp": {
+      "rp_id": "brightpath-health.example",
+      "origin": "https://login.brightpath-health.example",
+      "challenge": "F-HyERHb6gooKbvU1qEvlZbNTuS6tAJvFwS9-ZnanjA",
+      "passkey_policy": "uv"
+    },
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3016",
+    "plan": "Enterprise",
+    "idp": "Entra ID",
+    "from_name": "Aiko Tanaka",
+    "company": "Kitewise",
+    "subject": "Security keys enroll but policy rejects them",
+    "received_at": "2026-10-14T08:10Z",
+    "body": "We're rolling out phishing-resistant MFA. A few staff registered security keys, but our policy rejects them right after enrollment. The keys only ask for a tap. Registration data from one of them:\n\n{\n  \"id\": \"VWnIax9_wWGY-_beXyEKC396W7Wo8TkuKtr8uM5ufYI\",\n  \"rawId\": \"VWnIax9_wWGY-_beXyEKC396W7Wo8TkuKtr8uM5ufYI\",\n  \"type\": \"public-key\",\n  \"authenticatorAttachment\": \"cross-platform\",\n  \"response\": {\n    \"clientDataJSON\": \"eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiRi1IeUVSSGI2Z29vS2J2VTFxRXZsWmJOVHVTNnRBSnZGd1M5LVpuYW5qQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9naW4ua2l0ZXdpc2UuZXhhbXBsZSIsImNyb3NzT3JpZ2luIjpmYWxzZX0\",\n    \"attestationObject\": \"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViknfny8p9AsNsBGIpcDG1gK4RV1ICX3IAJKg3aLXj4gNxBAAAAAAAAAAAAAAAAAAAAAAAAAAAAIFVpyGsff8FhmPv23l8hCgt_elu1qPE5Lira_LjObn2CpQECAyYgASFYIOK_ZuXSXK_R__e7xDuHPFlmNq8bjCkkenub8tnrxzh_Ilggh2UvKaT5djl8wqsxsEDHZTGb3KeIAcIfM4KXuk5HUIM\",\n    \"transports\": [\n      \"usb\",\n      \"nfc\"\n    ]\n  },\n  \"clientExtensionResults\": {}\n}",
+    "sp": {
+      "rp_id": "kitewise.example",
+      "origin": "https://login.kitewise.example",
+      "challenge": "F-HyERHb6gooKbvU1qEvlZbNTuS6tAJvFwS9-ZnanjA",
+      "passkey_policy": "uv"
+    },
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3017",
+    "plan": "Enterprise",
+    "idp": "Okta",
+    "from_name": "Dev Patel",
+    "company": "Stackmint",
+    "subject": "Passkey works on the second try",
+    "received_at": "2026-10-14T09:45Z",
+    "body": "Some engineers say passkey sign-in fails the first time and works after a refresh. Our logs show a challenge error. Here's a failed attempt:\n\n{\n  \"id\": \"h5sYca5AnFYXabpsqRcwqo0LkeQTPtWaAMi-brHhC5I\",\n  \"rawId\": \"h5sYca5AnFYXabpsqRcwqo0LkeQTPtWaAMi-brHhC5I\",\n  \"type\": \"public-key\",\n  \"authenticatorAttachment\": \"platform\",\n  \"response\": {\n    \"clientDataJSON\": \"eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiUzBxSlJjQ1gwa3BkU0lvMjBDTl9adFVjM2M5ZWZUcjlYUDIwYXZfTngwbyIsIm9yaWdpbiI6Imh0dHBzOi8vaWQuc3RhY2ttaW50LmV4YW1wbGUiLCJjcm9zc09yaWdpbiI6ZmFsc2V9\",\n    \"authenticatorData\": \"sG4Dij5aTFSHTF0f-Uo7MVc5VwJiGzHwskrfEVm-05sdAAAAAA\",\n    \"signature\": \"MEYCIQDTqSsCtWUrRfte1PC4WW3VK7q8_y2Q31LwvM_5t6bYoQIhAN3CYSKUU-Xz75-OnvDnXdeC3152j0on7Qv-QAiTZjz3\",\n    \"userHandle\": \"Oc8hxJHvKUPZPQXvuPDXDg\"\n  },\n  \"clientExtensionResults\": {}\n}",
+    "sp": {
+      "rp_id": "stackmint.example",
+      "origin": "https://id.stackmint.example",
+      "challenge": "F-HyERHb6gooKbvU1qEvlZbNTuS6tAJvFwS9-ZnanjA",
+      "passkey_policy": "uv"
+    },
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3018",
+    "plan": "Enterprise",
+    "idp": "Okta",
+    "from_name": "Sam Whitaker",
+    "company": "Casefile Legal",
+    "subject": "Phone passkeys rejected under our new policy",
+    "received_at": "2026-10-14T10:30Z",
+    "body": "Our security team now requires device-bound authenticators for attorneys. A partner registered a passkey on her phone and it's rejected. Registration data:\n\n{\n  \"id\": \"G1dGOiuk_afzQzRDUI36JCw0tHcs5yDVFSpJlzgWLvM\",\n  \"rawId\": \"G1dGOiuk_afzQzRDUI36JCw0tHcs5yDVFSpJlzgWLvM\",\n  \"type\": \"public-key\",\n  \"authenticatorAttachment\": \"platform\",\n  \"response\": {\n    \"clientDataJSON\": \"eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiRi1IeUVSSGI2Z29vS2J2VTFxRXZsWmJOVHVTNnRBSnZGd1M5LVpuYW5qQSIsIm9yaWdpbiI6Imh0dHBzOi8vc3NvLmNhc2VmaWxlLmV4YW1wbGUiLCJjcm9zc09yaWdpbiI6ZmFsc2V9\",\n    \"attestationObject\": \"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViksZw6MIf3OQ5qOVkYDrzSxN04arFoV2PwgwVssrRIHNZdAAAAAAAAAAAAAAAAAAAAAAAAAAAAIBtXRjorpP2n80M0Q1CN-iQsNLR3LOcg1RUqSZc4Fi7zpQECAyYgASFYIHAX6b2s7Vig6YsK05JjvoSzzAABsf9RDGMd6rpUMMAyIlggsEL2VaetSGeGmUelkKCH_-OFNdWHoCtLIPOXryCgdKo\",\n    \"transports\": [\n      \"internal\",\n      \"hybrid\"\n    ]\n  },\n  \"clientExtensionResults\": {}\n}",
+    "sp": {
+      "rp_id": "casefile.example",
+      "origin": "https://sso.casefile.example",
+      "challenge": "F-HyERHb6gooKbvU1qEvlZbNTuS6tAJvFwS9-ZnanjA",
+      "passkey_policy": "device_bound"
+    },
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3019",
+    "plan": "Team",
+    "idp": "Google Workspace",
+    "from_name": "Marcus Hale",
+    "company": "Juniper Studio",
+    "subject": "Passkey prompt closes with an error",
+    "received_at": "2026-10-14T11:15Z",
+    "body": "A designer on a new Windows laptop clicks \"Sign in with a passkey\" and gets this in the console. She set up her passkey on her Mac last month.\n\nUncaught (in promise) NotAllowedError: The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.\n    at navigator.credentials.get (signin.js:88)",
+    "sp": {},
+    "kind": "passkey"
+  },
+  {
+    "id": "SSO-3020",
+    "plan": "Enterprise",
+    "idp": "Okta",
+    "from_name": "Priya Raman",
+    "company": "Northwind Analytics",
+    "subject": "Can't register passkeys on our staging sign-in",
+    "received_at": "2026-10-14T13:40Z",
+    "body": "On our staging sign-in page at northwind.example, the register button fails right away, before any prompt appears. Our config sets rpId to login.northwind.example to match production. Console:\n\nSecurityError: The relying party ID is not a registrable domain suffix of, nor equal to the current domain.\n    at navigator.credentials.create (enroll.js:41)",
+    "sp": {},
+    "kind": "passkey"
   }
 ]

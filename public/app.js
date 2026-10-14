@@ -1,13 +1,13 @@
 // Everything is rendered with textContent, so nothing pasted or returned can inject markup.
 const $ = (id) => document.getElementById(id);
 const state = { ticket: null };
-const DEFAULT_SP = { entity_id: 'https://sso.example-sp.com/saml/conn_01NORTHWIND', acs_url: 'https://sso.example-sp.com/saml/conn_01NORTHWIND/acs', cert_fingerprint: '', client_id: '' };
-const SP_FIELDS = { entity_id: 'sp-entity', acs_url: 'sp-acs', cert_fingerprint: 'sp-fp', client_id: 'sp-client' };
+const DEFAULT_SP = { entity_id: 'https://sso.example-sp.com/saml/conn_01NORTHWIND', acs_url: 'https://sso.example-sp.com/saml/conn_01NORTHWIND/acs', cert_fingerprint: '', client_id: '', rp_id: '', origin: '', challenge: '', passkey_policy: 'any' };
+const SP_FIELDS = { entity_id: 'sp-entity', acs_url: 'sp-acs', cert_fingerprint: 'sp-fp', client_id: 'sp-client', rp_id: 'sp-rpid', origin: 'sp-origin', challenge: 'sp-challenge', passkey_policy: 'sp-policy' };
 
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
 
 // ---------- tickets ----------
-function setSp(sp) { for (const [k, id] of Object.entries(SP_FIELDS)) $(id).value = sp?.[k] || ''; }
+function setSp(sp) { for (const [k, id] of Object.entries(SP_FIELDS)) $(id).value = sp?.[k] || DEFAULT_SP[k] || ''; }
 function getSp() { return Object.fromEntries(Object.entries(SP_FIELDS).map(([k, id]) => [k, $(id).value.trim()])); }
 
 function ticketButton(t) {
@@ -21,7 +21,7 @@ function ticketButton(t) {
     b.setAttribute('aria-pressed', 'true');
     state.ticket = t;
     $('input').value = t.body;
-    setSp(t.sp || DEFAULT_SP);
+    setSp({ ...DEFAULT_SP, ...(t.sp || {}) });
     $('ticket-chip').textContent = `${t.id}: ${t.subject}${t.source ? ` (from ${t.source})` : ''}`;
     $('ticket-chip').hidden = false;
     countChars();
@@ -33,7 +33,12 @@ function ticketButton(t) {
 async function loadQueue() {
   let tickets = [];
   try { tickets = await (await fetch('/tickets.json')).json(); } catch { /* empty queue */ }
-  for (const t of tickets) { const li = el('li'); li.append(ticketButton(t)); $('tickets').append(li); }
+  let group = null;
+  for (const t of tickets) {
+    const g = t.kind === 'passkey' ? 'Passkey tickets' : 'SAML, OIDC, SCIM and DNS tickets';
+    if (g !== group) { group = g; $('tickets').append(el('li', { className: 'queue-group', textContent: g })); }
+    const li = el('li'); li.append(ticketButton(t)); $('tickets').append(li);
+  }
 }
 
 // A ticket handed over from another tool arrives in the URL fragment, which never reaches the server.
@@ -162,7 +167,7 @@ async function explain(fresh) {
 }
 $('explain').addEventListener('click', () => explain(false));
 
-const KIND = { saml: 'SAML response', oidc_token: 'OIDC ID token', oidc_error: 'OIDC error from the IdP', scim_error: 'SCIM error', dns: 'DNS lookup', text: 'Ticket text only' };
+const KIND = { saml: 'SAML response', oidc_token: 'OIDC ID token', oidc_error: 'OIDC error from the IdP', scim_error: 'SCIM error', dns: 'DNS lookup', webauthn: 'Passkey (WebAuthn) response', webauthn_error: 'Browser passkey error', text: 'Ticket text only' };
 
 function checksBlock(a) {
   const frag = $('tpl-checks').content.cloneNode(true);
@@ -229,6 +234,103 @@ function render(data, saved) {
   }));
   out.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ---------- live passkey demo ----------
+// The browser makes a throwaway passkey for this page; the checks then decode exactly what it sent back.
+const pk = { created: null };
+const bytesToB64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64urlToBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+const randomBytes = (n) => crypto.getRandomValues(new Uint8Array(n));
+
+function credentialJson(cred) {
+  if (typeof cred.toJSON === 'function') { try { return cred.toJSON(); } catch { /* fall through */ } }
+  const r = cred.response;
+  const out = { id: cred.id, rawId: bytesToB64url(cred.rawId), type: cred.type, authenticatorAttachment: cred.authenticatorAttachment ?? null, response: { clientDataJSON: bytesToB64url(r.clientDataJSON) }, clientExtensionResults: cred.getClientExtensionResults?.() || {} };
+  if (r.attestationObject) {
+    out.response.attestationObject = bytesToB64url(r.attestationObject);
+    if (r.getTransports) out.response.transports = r.getTransports();
+  } else {
+    Object.assign(out.response, { authenticatorData: bytesToB64url(r.authenticatorData), signature: bytesToB64url(r.signature) });
+    if (r.userHandle) out.response.userHandle = bytesToB64url(r.userHandle);
+  }
+  return out;
+}
+
+function showLive(text, chip, challenge) {
+  state.ticket = null;
+  document.querySelectorAll('.ticket').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  $('input').value = text;
+  setSp({ ...DEFAULT_SP, rp_id: location.hostname, origin: location.origin, challenge: challenge || '', passkey_policy: $('sp-policy').value });
+  document.querySelector('details.sp').open = true;
+  $('ticket-chip').textContent = chip;
+  $('ticket-chip').hidden = false;
+  countChars();
+  $('check-only').click();
+}
+
+function pkStatus(msg) { $('pk-status').textContent = msg; }
+
+async function createPasskey() {
+  if (!window.PublicKeyCredential || !navigator.credentials?.create) return pkStatus('This browser doesn’t support passkeys.');
+  const challenge = randomBytes(32);
+  try {
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge,
+      rp: { id: location.hostname, name: 'SSO Assistant demo' },
+      user: { id: randomBytes(16), name: 'sso-assistant-demo', displayName: 'SSO Assistant demo' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -8 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { residentKey: 'discouraged', userVerification: 'preferred' },
+      attestation: 'none',
+      timeout: 120000,
+    } });
+    const json = credentialJson(cred);
+    pk.created = { id: json.rawId || json.id, transports: json.response.transports || [] };
+    $('pk-get').disabled = false;
+    $('pk-remove').hidden = typeof PublicKeyCredential.signalUnknownCredential !== 'function';
+    pkStatus('Created. The checks below show what your authenticator sent. Now try Sign in with it, or edit the RP ID or allowed origins above and run the checks again.');
+    showLive(JSON.stringify(json, null, 2), 'Live passkey you just created on this page. Change a passkey setting above and run the checks again.', bytesToB64url(challenge));
+  } catch (err) {
+    pkStatus('The browser stopped it. The checks below explain the error, the same way they would for a customer.');
+    showLive(`${err.name}: ${err.message}\n    at navigator.credentials.create (live demo on ${location.hostname})`, 'Live error from your browser while creating a passkey.');
+  }
+}
+
+async function usePasskey() {
+  if (!pk.created) return;
+  const challenge = randomBytes(32);
+  try {
+    const cred = await navigator.credentials.get({ publicKey: {
+      challenge,
+      rpId: location.hostname,
+      allowCredentials: [{ type: 'public-key', id: b64urlToBytes(pk.created.id), transports: pk.created.transports }],
+      userVerification: 'preferred',
+      timeout: 120000,
+    } });
+    pkStatus('Signed in with your test passkey. The response is a real signature over this page’s challenge.');
+    showLive(JSON.stringify(credentialJson(cred), null, 2), 'Live sign-in with the passkey you just created. Change a passkey setting above and run the checks again.', bytesToB64url(challenge));
+  } catch (err) {
+    pkStatus('The browser stopped it. The checks below explain the error.');
+    showLive(`${err.name}: ${err.message}\n    at navigator.credentials.get (live demo on ${location.hostname})`, 'Live error from your browser while signing in with a passkey.');
+  }
+}
+
+async function removePasskey() {
+  if (!pk.created) return;
+  try {
+    await PublicKeyCredential.signalUnknownCredential({ rpId: location.hostname, credentialId: pk.created.id });
+    pkStatus('Asked your password manager to remove the test passkey. Some password managers ignore this; you can also delete it in their settings under this site’s name.');
+    $('pk-remove').hidden = true;
+  } catch { pkStatus('Your password manager didn’t accept the request. You can delete the passkey in its settings under this site’s name.'); }
+}
+
+$('pk-create').addEventListener('click', createPasskey);
+$('pk-get').addEventListener('click', usePasskey);
+$('pk-remove').addEventListener('click', removePasskey);
+$('use-passkey').addEventListener('click', () => {
+  $('own').open = true;
+  $('passkey-recipe').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('pk-create').focus({ preventScroll: true });
+});
 
 (async function start() {
   setSp(DEFAULT_SP);

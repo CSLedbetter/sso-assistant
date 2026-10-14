@@ -70,3 +70,20 @@ test('signed-out visitors still get the free checks, but Claude is never called'
   assert.ok(r.body.analysis.checks.some((c) => c.id === 'audience' && c.status === 'fail'));
   assert.ok(!calls.some((c) => c.url.includes('/rpc/') || c.url.includes('anthropic')));
 });
+
+test('sends Claude decoded passkey fields, never the signature, attestation or public key', async () => {
+  for (const id of ['SSO-3014', 'SSO-3016']) {
+    calls = [];
+    const t = tickets.find((x) => x.id === id);
+    const cred = JSON.parse(t.body.slice(t.body.indexOf('{')));
+    const r = await run({ input: t.body, sp: t.sp, ticket: t });
+    assert.equal(r.status, 200, id);
+    const sent = calls.find((c) => c.url.includes('anthropic')).body.messages[0].content;
+    assert.match(sent, /Passkey credential JSON, decoded by code/);
+    assert.match(sent, /What was pasted: webauthn/);
+    for (const raw of [cred.response.signature, cred.response.attestationObject, cred.response.authenticatorData, cred.response.clientDataJSON].filter(Boolean)) {
+      assert.ok(!sent.includes(raw.slice(0, 40)), `${id} leaked raw credential data`);
+    }
+    assert.match(sent, new RegExp(t.body.split('\n')[0].slice(0, 30).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'keeps the customer’s own words');
+  }
+});

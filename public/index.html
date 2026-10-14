@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SSO Assistant</title>
-<meta name="description" content="Paste a SAML response, OIDC token, SCIM error, or DNS check. Code runs the hard checks, then Claude explains the failure and drafts replies for the IT admin and an executive.">
+<meta name="description" content="Paste a SAML response, OIDC token, SCIM error, passkey response, or DNS check. Code runs the hard checks, then Claude explains the failure and drafts replies for the IT admin and an executive.">
 <link rel="canonical" href="https://sso-assistant.caseyledbetter.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://sso-assistant.caseyledbetter.com/">
 <meta property="og:title" content="SSO Assistant">
-<meta property="og:description" content="Decode a SAML response or OIDC token, run the hard checks, and get the fix plus two ready replies.">
+<meta property="og:description" content="Decode a SAML response, OIDC token or passkey, run the hard checks, and get the fix plus two ready replies.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
   <header class="hero">
     <p class="eyebrow">Support tooling demo</p>
     <h1>SSO Assistant</h1>
-    <p class="lede">Paste a SAML response, an OIDC token or error, a SCIM error, or DNS output. Code decodes it and checks the audience, ACS URL, certificate, clock, NameID, and signatures. Claude then explains the failure in plain words and drafts replies for the customer’s IT admin and an executive.</p>
+    <p class="lede">Paste a SAML response, an OIDC token or error, a SCIM error, a passkey response, or DNS output. Code decodes it and checks the audience, ACS URL, certificate, clock, NameID, and signatures, or a passkey’s origin, RP ID, challenge and flags. Claude then explains the failure in plain words and drafts replies for the customer’s IT admin and an executive.</p>
     <nav class="family" aria-label="Related tools">
       <a href="https://doc-gap-finder.caseyledbetter.com">Doc Gap Finder</a>
       <a href="https://api-error-explainer.caseyledbetter.com">API Error Explainer</a>
@@ -41,6 +41,7 @@
     <section class="panel queue" aria-labelledby="queue-h">
       <div class="sec-head"><h2 id="queue-h">SSO ticket queue</h2></div>
       <button type="button" class="own-btn" id="use-own">Try your own SSO data</button>
+      <button type="button" class="own-btn alt" id="use-passkey">Create a real passkey and inspect it</button>
       <p class="muted small">Or pick one of these fictional tickets. Their SAML responses and tokens are real, freshly generated ones.</p>
       <div id="handoff-slot"></div>
       <ul id="tickets" class="tickets"></ul>
@@ -54,7 +55,7 @@
         </div>
         <div id="ticket-chip" class="chip" hidden></div>
         <label for="input" class="visually-hidden">SAML response, token, error, or ticket text</label>
-        <textarea id="input" rows="11" maxlength="20000" spellcheck="false" placeholder="Paste a base64 SAMLResponse, SAML XML, an ID token, an IdP error, SCIM error JSON, or dig output."></textarea>
+        <textarea id="input" rows="11" maxlength="20000" spellcheck="false" placeholder="Paste a base64 SAMLResponse, SAML XML, an ID token, an IdP error, SCIM error JSON, passkey credential JSON, a browser passkey error, or dig output."></textarea>
         <details class="sp">
           <summary>Service provider settings to check against</summary>
           <p class="muted small">The values from the SSO setup screen. Tickets fill these in; edit them to try your own.</p>
@@ -63,6 +64,16 @@
             <label for="sp-acs">ACS URL</label><input id="sp-acs" spellcheck="false">
             <label for="sp-fp">Cert fingerprint (SHA-256)</label><input id="sp-fp" spellcheck="false" placeholder="optional">
             <label for="sp-client">OIDC client ID</label><input id="sp-client" spellcheck="false" placeholder="optional">
+            <p class="grid-head">Passkeys</p>
+            <label for="sp-rpid">RP ID</label><input id="sp-rpid" spellcheck="false" placeholder="example.com">
+            <label for="sp-origin">Allowed origins</label><input id="sp-origin" spellcheck="false" placeholder="https://login.example.com (comma-separated)">
+            <label for="sp-challenge">Challenge issued</label><input id="sp-challenge" spellcheck="false" placeholder="optional">
+            <label for="sp-policy">Passkey policy</label>
+            <select id="sp-policy">
+              <option value="any">Any passkey</option>
+              <option value="uv">Require user verification (PIN or biometric)</option>
+              <option value="device_bound">Require device-bound (no synced passkeys)</option>
+            </select>
           </div>
         </details>
         <div class="actions">
@@ -79,6 +90,16 @@
             <p>Load a sample as plain XML, change something (the <span class="mono">Audience</span>, a <span class="mono">NotBefore</span> time, or the <span class="mono">NameID</span>), then click Run checks.</p>
             <p><button type="button" id="to-xml">Load a sample as editable XML</button></p>
           </div>
+          <div class="recipe" id="passkey-recipe">
+            <div class="recipe-head"><b>Create a real passkey and inspect it</b></div>
+            <p>Your browser makes a throwaway passkey for this page, then the checks decode what it sent back: origin, RP ID, challenge, user verification, and whether it’s synced or device-bound. Then sign in with it, or change the RP ID or origin under Service provider settings and run the checks again to see what a phishing page or a domain migration looks like.</p>
+            <p class="row">
+              <button type="button" id="pk-create">Create a test passkey</button>
+              <button type="button" id="pk-get" disabled>Sign in with it</button>
+              <button type="button" class="link" id="pk-remove" hidden>Remove it from my password manager</button>
+            </p>
+            <p class="muted small" id="pk-status">It doesn’t sign you in to anything. The account name is “sso-assistant-demo”, so it holds no personal data, and nothing is saved on the server. Cancel the prompt to see the error a customer would report.</p>
+          </div>
           <div class="recipe">
             <div class="recipe-head"><b>Capture a real SAML response from your own sign-in</b></div>
             <ol class="small">
@@ -88,7 +109,7 @@
               <li>Paste it above, fill in the app’s entity ID and ACS URL under Service provider settings, and run the checks.</li>
             </ol>
           </div>
-          <p class="muted small">You can also paste an OIDC ID token, an IdP error like an <span class="mono">AADSTS</span> code, a SCIM error, or <span class="mono">dig TXT</span> output. A real SAML response includes your name and email, so use a test account or one you don’t mind sharing with Claude.</p>
+          <p class="muted small">You can also paste an OIDC ID token, an IdP error like an <span class="mono">AADSTS</span> code, a SCIM error, passkey JSON from <span class="mono">credential.toJSON()</span>, a browser error like <span class="mono">NotAllowedError</span>, or <span class="mono">dig TXT</span> output. A real SAML response includes your name and email, so use a test account or one you don’t mind sharing with Claude.</p>
         </details>
       </section>
 
@@ -97,7 +118,7 @@
   </div>
 
   <footer class="muted small">
-    Built by <a href="https://caseyledbetter.com">Casey Ledbetter</a> with Claude Code. Signatures are checked for presence and the certificate is inspected; signatures aren’t verified cryptographically in this demo.
+    Built by <a href="https://caseyledbetter.com">Casey Ledbetter</a> with Claude Code. Signatures are checked for presence and the certificate is inspected; SAML and passkey signatures aren’t verified cryptographically in this demo.
     <a href="https://github.com/CSLedbetter/sso-assistant">Source</a>
   </footer>
 </div>
