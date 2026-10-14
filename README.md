@@ -1,6 +1,6 @@
 # SSO Assistant
 
-Paste what a customer sent about a broken single sign-on: a SAML response (base64, URL-encoded, or XML), an OIDC ID token, an IdP error, a SCIM error, `dig` output for domain verification, or just their ticket. Code decodes it and runs the checks people usually get wrong by eye. Then Claude explains the failure, says where the fix lives (their IdP, their Claude SSO settings, or their DNS), links the right help center article, and drafts a reply for the IT admin and a summary for an executive.
+Paste what a customer sent about a broken single sign-on: a SAML response (base64, URL-encoded, or XML), an OIDC ID token, an IdP error, a SCIM error, a passkey (WebAuthn) response or browser passkey error, `dig` output for domain verification, or just their ticket. Code decodes it and runs the checks people usually get wrong by eye. Then Claude explains the failure, says where the fix lives (their IdP, their Claude SSO settings, or their DNS), links the right help center article, and drafts a reply for the IT admin and a summary for an executive.
 
 - **Live demo:** https://sso-assistant.caseyledbetter.com (running the checks is free; explaining needs an approved sign-in)
 - **Sibling tools:** [Doc Gap Finder](https://doc-gap-finder.caseyledbetter.com) and [API Error Explainer](https://api-error-explainer.caseyledbetter.com)
@@ -14,15 +14,23 @@ Paste what a customer sent about a broken single sign-on: a SAML response (base6
 | OIDC ID token | `alg` isn't `none`, `aud` matches the client ID, email claim present, lifetime |
 | OIDC error | Expired client secret (Entra `AADSTS7000222`), `invalid_client` |
 | SCIM error | `scimType` translated (uniqueness, mutability, ...) |
+| Passkey response (`credential.toJSON()`) | Origin against the allowed origins (the phishing-resistance check), RP ID hash against the RP ID (and which domain an orphaned passkey was really made for), challenge, user present and user verified flags, synced versus device-bound against the passkey policy, key algorithm and attestation format, signature presence |
+| Browser passkey error | `NotAllowedError`, `InvalidStateError`, `SecurityError`, `NotSupportedError`, `AbortError`, `ConstraintError`, and whether it happened during registration or sign-in |
 | `dig` output | The `anthropic-domain-verification-` TXT record is on the domain root, not `www` |
 
-Signatures are checked for presence and the certificate is inspected; the demo doesn't verify signatures cryptographically.
+Signatures are checked for presence and the certificate is inspected; the demo doesn't verify SAML or passkey signatures cryptographically.
+
+For passkeys, Claude gets only the decoded fields. The signature, attestation object, authenticator data and public key never leave the server.
+
+## Live passkey demo
+
+The page can create a throwaway passkey for its own domain with `navigator.credentials.create()`, run the checks on what the browser returned, then sign in with it. A visitor can then change the RP ID, allowed origins or policy and rerun the checks to see what a look-alike phishing page, a domain migration, or a device-bound policy does to the same passkey. Cancelling the prompt shows the `NotAllowedError` a customer would report. The passkey's account name is `sso-assistant-demo`, nothing is stored on the server, and where the browser supports the Signal API the page can ask the password manager to remove it.
 
 Claude gets the decoded XML with signature values and certificate bodies stripped, the decoded fields, and the check results. Its doc links are limited to four Claude help center articles on SSO, provisioning and domains, and its facts come from those articles.
 
 ## Sample tickets
 
-`public/tickets.json` has 13 fictional tickets. `data/make_samples.py` builds them with real, freshly generated X.509 certificates so the responses decode exactly like real ones. Each one is built to fail one check (or none, for the two where the problem is somewhere code can't see), and `npm test` confirms it.
+`public/tickets.json` has 20 fictional tickets. `data/make_samples.py` builds the 13 SAML, OIDC, SCIM and DNS tickets with real, freshly generated X.509 certificates so the responses decode exactly like real ones. `data/make_passkey_samples.py` adds 7 passkey tickets with real P-256 keys, CBOR attestation objects and ES256 signatures; run it after `make_samples.py`, which rewrites the file (`npm run samples` runs both). Each one is built to fail one check (or none, for the two where the problem is somewhere code can't see), and `npm test` confirms it.
 
 ## Sign-in, approval, and the $15 cap
 
@@ -38,7 +46,7 @@ Each paid diagnosis is saved in the visitor's browser tab, keyed by a SHA-256 ha
 cp .env.example .env.local   # add your own keys
 npm test
 npx vercel dev
-python3 data/make_samples.py # regenerate the sample tickets (needs the cryptography package)
+npm run samples              # regenerate the sample tickets (needs the cryptography package)
 ```
 
 ## Environment variables
