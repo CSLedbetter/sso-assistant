@@ -179,3 +179,8 @@ details.sp .grid-head { grid-column: 1 / -1; margin: 8px 0 0; font-family: var(-
 .own-btn.alt { background: var(--accent-soft); color: var(--ink); }
 .recipe .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .queue-group { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-top: 6px; }
+
+/* separate each recipe in "Bring your own"; margins, since some browsers ignore grid gap on <details> */
+details.own > .recipe { margin: 6px 0; }
+details.own > .recipe + .recipe { margin-top: 22px; }
+.recipe-head { background: var(--accent-soft); }
