@@ -92,7 +92,7 @@
           </div>
           <div class="recipe" id="passkey-recipe">
             <div class="recipe-head"><b>Create a real passkey and inspect it</b></div>
-            <p>Your browser makes a throwaway passkey for this page, then the checks decode what it sent back: origin, RP ID, challenge, user verification, and whether it’s synced or device-bound. Then sign in with it, or change the RP ID or origin under Service provider settings and run the checks again to see what a phishing page or a domain migration looks like.</p>
+            <p>Make a throwaway passkey and see what your browser sent: origin, RP ID, challenge and flags. Then sign in with it, or change the RP ID or origin above to see a phishing page or domain migration fail.</p>
             <p class="row">
               <button type="button" id="pk-create">Create a test passkey</button>
               <button type="button" id="pk-get" disabled>Sign in with it</button>
@@ -109,7 +109,7 @@
               <li>Paste it above, fill in the app’s entity ID and ACS URL under Service provider settings, and run the checks.</li>
             </ol>
           </div>
-          <p class="muted small">You can also paste an OIDC ID token, an IdP error like an <span class="mono">AADSTS</span> code, a SCIM error, passkey JSON from <span class="mono">credential.toJSON()</span>, a browser error like <span class="mono">NotAllowedError</span>, or <span class="mono">dig TXT</span> output. A real SAML response includes your name and email, so use a test account or one you don’t mind sharing with Claude.</p>
+          <p class="muted small">Also accepts OIDC tokens, <span class="mono">AADSTS</span> and SCIM errors, passkey JSON, browser errors like <span class="mono">NotAllowedError</span>, and <span class="mono">dig TXT</span> output. A real SAML response contains your name and email, so use a test account.</p>
         </details>
       </section>
 
